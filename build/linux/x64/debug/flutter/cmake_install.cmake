@@ -1,8 +1,8 @@
-# Install script for directory: /home/gabrielz/Desktop/Ai_Music_key_finder/sikio/linux/flutter
+# Install script for directory: /home/gabrielz/programs/AI_Music_Key_Finder/linux/flutter
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle")
+  set(CMAKE_INSTALL_PREFIX "/home/gabrielz/programs/AI_Music_Key_Finder/build/linux/x64/debug/bundle")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 

@@ -1,0 +1,1 @@
+ /home/gabrielz/programs/AI_Music_Key_Finder/.dart_tool/flutter_build/8176a8e7afeb7fa4f47adc19d853bd72/native_assets.yaml: 

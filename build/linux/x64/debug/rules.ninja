@@ -42,7 +42,7 @@ rule CXX_EXECUTABLE_LINKER__sikio
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = /snap/flutter/145/usr/bin/cmake -S/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/linux -B/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug
+  command = /snap/flutter/145/usr/bin/cmake -S/home/gabrielz/programs/AI_Music_Key_Finder/linux -B/home/gabrielz/programs/AI_Music_Key_Finder/build/linux/x64/debug
   description = Re-running CMake...
   generator = 1
 
