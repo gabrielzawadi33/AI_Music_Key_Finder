@@ -1,0 +1,14 @@
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/sikio
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/icudtl.dat
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/lib/libflutter_linux_gtk.so
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/fonts/MaterialIcons-Regular.otf
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/NOTICES.Z
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/shaders/ink_sparkle.frag
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/AssetManifest.bin.json
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/NOTICES
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/AssetManifest.bin
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/version.json
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/FontManifest.json
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/kernel_blob.bin
+/home/gabrielz/Desktop/Ai_Music_key_finder/sikio/build/linux/x64/debug/bundle/data/flutter_assets/AssetManifest.json
