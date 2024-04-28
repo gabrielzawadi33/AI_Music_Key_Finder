@@ -1,0 +1,20 @@
+the Ai music key finder app
+tsks to  fowerd
+(rfrontend)
+1. improving the Ui
+2. making the functionality of te upload Audio button so thet it can be processed in the backend
+3. making the refesh button work so that the backend session can be restarted
+4. making the reccord button function so that it can listen and be processed in the backend
+
+
+(backend)
+1. improving the accoracy of the model
+    increasing the size of the data
+    increasing the quality of the data
+
+2. processing the inputs
+3. delivering the outputs to the frontend
+
+
+TODO
+making the  upload button function and improving the user Interface  by (monday)

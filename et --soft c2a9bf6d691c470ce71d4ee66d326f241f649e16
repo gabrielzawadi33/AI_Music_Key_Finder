@@ -1,0 +1,30 @@
+[33mcommit 3edd0f4eac77dbc9f36e6ca992eb7cc3e3a9dcd9[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: gabrielzawadi33 <gabrielzawadi33@gmail.con>
+Date:   Mon Apr 22 18:12:08 2024 +0300
+
+    Add Git LFS configuration
+
+[33mcommit 204faeaad982e4bc36fc0aa34a1cf201b1ee8c03[m
+Author: gabrielzawadi33 <gabrielzawadi33@gmail.con>
+Date:   Mon Apr 22 17:08:31 2024 +0300
+
+    updated interface
+
+[33mcommit c2a9bf6d691c470ce71d4ee66d326f241f649e16[m
+Author: gabrielzawadi33 <gabrielzawadi33@gmail.con>
+Date:   Tue Apr 16 00:05:57 2024 +0300
+
+    customizing the music note button
+
+[33mcommit b53935eabb5345f6cd8e1d01d053ff1982e3d107[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: gabrielzawadi33 <gabrielzawadi33@gmail.con>
+Date:   Sun Jan 28 22:23:47 2024 +0300
+
+    project addoption
+
+[33mcommit dadf8178acbb49d47db2a21e2d6c6e9fa23e48ab[m
+Merge: 45030f2 55ec17f
+Author: gabrielzawadi33 <gabrielzawadi33@gmail.con>
+Date:   Sun Jan 28 19:35:59 2024 +0300
+
+    Merge remote-tracking branch 'origin/main'

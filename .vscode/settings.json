@@ -1,3 +1,10 @@
 {
+<<<<<<< HEAD
     "java.compile.nullAnalysis.mode": "automatic"
+=======
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.runtimes": [
+        
+    ]
+>>>>>>> 645b876 (update Ui)
 }
