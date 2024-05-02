@@ -1,16 +1,16 @@
 
 import 'dart:convert';
-
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -27,7 +27,74 @@ class _MyAppState extends State<MyApp> {
   String titleText = 'Music Key Finder';
   late PlatformFile? selectedFile;
   late http.MultipartRequest? fileUploadRequest;
+  // function to determine the  condition of thre previous state
+  void onRefreshButtonPressed() {
+  if (wasLastActionRecording) {
+    // Send the request for the recorded audio
+    stopRecorder();
+  } else {
+    // Send the request for the selected file
+    uploadFile();
+  }
+  }
 
+
+   @override
+  void initState() {
+    initRecorder();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    recorder.closeRecorder();
+    super.dispose();
+  }
+
+  final recorder = FlutterSoundRecorder();
+  bool wasLastActionRecording = false;
+
+  Future initRecorder() async {
+    final status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      throw 'Microphone permission not granted!';
+    }
+    await recorder.openRecorder();
+    recorder.setSubscriptionDuration(const Duration(milliseconds: 500));
+  }
+
+  Future startRecord() async {
+    Directory? directory;
+    if (Platform.isAndroid) {
+      directory = await getExternalStorageDirectory();
+    } else {
+      directory = await getApplicationDocumentsDirectory();
+    }
+
+    String filePath = '${directory!.path}/my_recording.aac';
+    await recorder.startRecorder(toFile: filePath);
+  }
+
+  Future stopRecorder() async {
+    final filePath = await recorder.stopRecorder();
+    final file = File(filePath!);
+    print('Recorded file path: $filePath');
+     var request = http.MultipartRequest('POST', Uri.parse('Your API Endpoint'));
+    request.files.add(await http.MultipartFile.fromPath('audio', file.path));
+
+
+    // Send the request
+    var response = await request.send();
+
+    // Handle the response
+    if (response.statusCode == 200) {
+      print('Uploaded!');
+    } else {
+      print('Failed to upload.');
+    }
+
+    wasLastActionRecording = true;
+  }
   // Function to handle file selection and create upload request
   Future<void> selectAndUploadFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -58,17 +125,19 @@ class _MyAppState extends State<MyApp> {
   } else {
     print('Unexpected response format');
   }
-} else {
-  print('Upload failed with status: ${response.statusCode}.');
-}
+  } 
+  else {
+    print('Upload failed with status: ${response.statusCode}.');
+  }
     } else {
       // User canceled the picker
     }
   }
 
+
   // Function to send the upload request
   Future<void> uploadFile() async {
-
+    wasLastActionRecording = false;//setting the status of the refresh
     fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.184.203:8000/keyfinder/upload/'));
 
     if (selectedFile != null) {
@@ -100,7 +169,11 @@ class _MyAppState extends State<MyApp> {
       print("No file selected!");
     }
   }
+
+
+
   }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -195,10 +268,21 @@ class _MyAppState extends State<MyApp> {
                                   width: 2,
                                   )
                               ),
-                              child: IconButton(
-                                 icon: Icon(Icons.mic),
-                                 iconSize: 60,
-                                onPressed:( ){},
+                              child:
+                              ElevatedButton(
+                                onPressed: () async {
+                                  if (recorder.isRecording) {
+                                    await stopRecorder();
+                                    setState(() {});
+                                  } else {
+                                    await startRecord();
+                                    setState(() {});
+                                  }
+                                },
+                                child: Icon(
+                                  recorder.isRecording ? Icons.stop : Icons.mic,
+                                  size: 100,
+                                ),
                               ),
                             ),
                           ),
@@ -215,11 +299,11 @@ class _MyAppState extends State<MyApp> {
                                   width: 2,
                                   )
                               ),
-                              child: IconButton(
-                                icon: Icon(Icons.refresh),
-                                iconSize: 60,
-                                onPressed:uploadFile,
-                              ),
+                              child: 
+                              ElevatedButton(
+                                onPressed: onRefreshButtonPressed,
+                                child: Text('Refresh'),
+                              )
                             ),
                           ),
                           Expanded(
@@ -390,3 +474,7 @@ class _MusicWaveAnimationState extends State<MusicWaveAnimation> {
     );
   }
 }
+
+
+
+
