@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:path/path.dart' as path;
 
 void main() {
   runApp(const MyApp());
@@ -62,8 +62,9 @@ class _MyAppState extends State<MyApp> {
     await recorder.openRecorder();
     recorder.setSubscriptionDuration(const Duration(milliseconds: 500));
   }
-
+// start record 
   Future startRecord() async {
+    // get the directory 
     Directory? directory;
     if (Platform.isAndroid) {
       directory = await getExternalStorageDirectory();
@@ -73,24 +74,43 @@ class _MyAppState extends State<MyApp> {
 
     String filePath = '${directory!.path}/my_recording.aac';
     await recorder.startRecorder(toFile: filePath);
+    return filePath;
   }
 
+// sending the request afrer  the recording stops
   Future stopRecorder() async {
     final filePath = await recorder.stopRecorder();
     final file = File(filePath!);
     print('Recorded file path: $filePath');
-     var request = http.MultipartRequest('POST', Uri.parse('Your API Endpoint'));
-    request.files.add(await http.MultipartFile.fromPath('audio', file.path));
 
+    var request = http.MultipartRequest('POST', Uri.parse('http://192.168.192.104:8000/keyfinder/upload/'));
+    request.files.add(http.MultipartFile(
+      'file',
+      file.readAsBytes().asStream(),
+      file.lengthSync(),
+      filename: path.basename(file.path),
+    ));
 
     // Send the request
     var response = await request.send();
 
     // Handle the response
     if (response.statusCode == 200) {
-      print('Uploaded!');
+      String responseBody = await response.stream.bytesToString();
+      var data = jsonDecode(responseBody);
+      if (data is Map && data.containsKey('likely_key')) {
+        setState(() {
+          titleText = data['likely_key'].toString();
+        });
+      } else {
+        if (kDebugMode) {
+          print('Unexpected response format');
+        }
+      } 
     } else {
-      print('Failed to upload.');
+      print('Failed to upload. : ${response.statusCode}');
+      String responseBody = await response.stream.bytesToString();
+      print('Response body: $responseBody');
     }
 
     wasLastActionRecording = true;
@@ -104,7 +124,7 @@ class _MyAppState extends State<MyApp> {
 
     if (result != null) {
       selectedFile = result.files.first;
-      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.184.203:8000/keyfinder/upload/'));
+      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.192.104:8000/keyfinder/upload/'));
       fileUploadRequest!.files.add(http.MultipartFile(
         'file', // consider 'file' as a field name on the server
         File(selectedFile!.path!).readAsBytes().asStream(),
@@ -138,7 +158,7 @@ class _MyAppState extends State<MyApp> {
   // Function to send the upload request
   Future<void> uploadFile() async {
     wasLastActionRecording = false;//setting the status of the refresh
-    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.184.203:8000/keyfinder/upload/'));
+    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.192.104:8000/keyfinder/upload/'));
 
     if (selectedFile != null) {
       fileUploadRequest!.files.add(http.MultipartFile(
