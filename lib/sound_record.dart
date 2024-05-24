@@ -1,11 +1,9 @@
-
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -55,8 +53,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final file = File(filePath!);
     print('Recorded file path: $filePath');
   }
-
-
 
   @override
   Widget build(BuildContext context) {

@@ -11,6 +11,7 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:path/path.dart' as path;
 
 void main() {
   runApp(const MyApp());
@@ -27,17 +28,29 @@ class _MyAppState extends State<MyApp> {
   String titleText = 'Music Key Finder';
   late PlatformFile? selectedFile;
   late http.MultipartRequest? fileUploadRequest;
+  final recorder = FlutterSoundRecorder();
+  bool wasLastActionRecording = false;
+  bool _isRecording = false;
+
   // function to determine the  condition of thre previous state
   void onRefreshButtonPressed() {
+    if (kDebugMode) {
+      print('refreshed');
+    }
   if (wasLastActionRecording) {
+    if (kDebugMode) {
+      print('hello reccorder########################################################################');
+    }
     // Send the request for the recorded audio
     stopRecorder();
   } else {
     // Send the request for the selected file
     uploadFile();
+    if (kDebugMode) {
+      print('upload refresh');
+    }
   }
   }
-
 
    @override
   void initState() {
@@ -51,9 +64,6 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-  final recorder = FlutterSoundRecorder();
-  bool wasLastActionRecording = false;
-
   Future initRecorder() async {
     final status = await Permission.microphone.request();
     if (status != PermissionStatus.granted) {
@@ -63,7 +73,9 @@ class _MyAppState extends State<MyApp> {
     recorder.setSubscriptionDuration(const Duration(milliseconds: 500));
   }
 // start record 
+// start record 
   Future startRecord() async {
+    // get the directory 
     // get the directory 
     Directory? directory;
     if (Platform.isAndroid) {
@@ -74,6 +86,11 @@ class _MyAppState extends State<MyApp> {
 
     String filePath = '${directory!.path}/my_recording.aac';
     await recorder.startRecorder(toFile: filePath);
+
+    setState(() {
+      _isRecording = true; // Update the animation state
+    });
+
     return filePath;
   }
 
@@ -81,9 +98,11 @@ class _MyAppState extends State<MyApp> {
   Future stopRecorder() async {
     final filePath = await recorder.stopRecorder();
     final file = File(filePath!);
-    print('Recorded file path: $filePath');
+    if (kDebugMode) {
+      print('Recorded file path: $filePath');
+    }
 
-    var request = http.MultipartRequest('POST', Uri.parse('http://192.168.192.104:8000/keyfinder/upload/'));
+    var request = http.MultipartRequest('POST', Uri.parse('http://192.168.105.203:8000/keyfinder/findKey'));
     request.files.add(http.MultipartFile(
       'file',
       file.readAsBytes().asStream(),
@@ -104,16 +123,24 @@ class _MyAppState extends State<MyApp> {
         });
       } else {
         if (kDebugMode) {
+          print(response);
           print('Unexpected response format');
         }
       } 
     } else {
-      print('Failed to upload. : ${response.statusCode}');
+      if (kDebugMode) {
+        print('Failed to upload. : ${response.statusCode}');
+      }
       String responseBody = await response.stream.bytesToString();
-      print('Response body: $responseBody');
+      if (kDebugMode) {
+        print('Response body: $responseBody');
+      }
     }
 
-    wasLastActionRecording = true;
+    setState(() {
+      _isRecording = false; // Update the animation state
+      wasLastActionRecording = true;
+    });
   }
   // Function to handle file selection and create upload request
   Future<void> selectAndUploadFile() async {
@@ -124,7 +151,7 @@ class _MyAppState extends State<MyApp> {
 
     if (result != null) {
       selectedFile = result.files.first;
-      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.192.104:8000/keyfinder/upload/'));
+      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.105.203:8000/keyfinder/findKey'));
       fileUploadRequest!.files.add(http.MultipartFile(
         'file', // consider 'file' as a field name on the server
         File(selectedFile!.path!).readAsBytes().asStream(),
@@ -143,11 +170,15 @@ class _MyAppState extends State<MyApp> {
       titleText = data['likely_key'].toString();
     });
   } else {
-    print('Unexpected response format');
+    if (kDebugMode) {
+      print('Unexpected response format');
+    }
   }
   } 
   else {
-    print('Upload failed with status: ${response.statusCode}.');
+    if (kDebugMode) {
+      print('Upload failed with status: ${response.statusCode}.');
+    }
   }
     } else {
       // User canceled the picker
@@ -158,7 +189,7 @@ class _MyAppState extends State<MyApp> {
   // Function to send the upload request
   Future<void> uploadFile() async {
     wasLastActionRecording = false;//setting the status of the refresh
-    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.192.104:8000/keyfinder/upload/'));
+    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.105.203:8000/keyfinder/findKey'));
 
     if (selectedFile != null) {
       fileUploadRequest!.files.add(http.MultipartFile(
@@ -181,12 +212,16 @@ class _MyAppState extends State<MyApp> {
           if (kDebugMode) {
             print('Unexpected response format');
           }
-        };
+        }
       } else {
-        print("Not Uploaded!");
+        if (kDebugMode) {
+          print("Not Uploaded!");
+        }
       }
     } else {
-      print("No file selected!");
+      if (kDebugMode) {
+        print("No file selected!");
+      }
     }
   }
 
@@ -200,210 +235,198 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         // backgroundColor: Colors.grey[200],//backround color
         appBar: AppBar(
-          title: const Text('My App'),
-          backgroundColor:  const Color.fromARGB(255, 37, 125, 189),
+          title: const Center(
+            child:  Text('Note',
+             style: TextStyle(
+                  color: Colors.blue,),
+                     
+                    ),
+          ),
+         backgroundColor:  const Color.fromARGB(255, 35, 5, 110),
         ),
-        body: Column(
-        children: <Widget>[
-            Expanded(
-              child: Stack(
-                children:<Widget>[
-                  Container(
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/images.jpeg'),
-                        fit: BoxFit.cover,
+        body: Container(
+          decoration: const BoxDecoration(
+            color: Color.fromARGB(255, 35, 5, 110),
+          ),
+          child: Column(
+          children: <Widget>[
+              Container(
+                margin: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                   
+                ),
+                height: 280,
+                child: Stack(
+                  children:<Widget>[
+                    Container(
+                     
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(20.0)),
+                        image: DecorationImage(
+                          image: AssetImage('assets/images/images.jpeg'),
+                          fit: BoxFit.cover,
+                        ),
+
                       ),
                     ),
-                  ),
-                Container(
-                  color: Colors.black.withOpacity(0.1),
-                  alignment:  Alignment.center,
-                  child:  
-                  Text(
-                    titleText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 30,
-                    ),
-                  )
-                )
-                ]
-                ),
-            ),
-            Container(
-              height: 100,
-              child: MusicWaveAnimation(),
-              
-              color: Colors.white,
-            ),
-            Expanded(
-              child: Container(//button container
-              margin: const EdgeInsets.only(top: 10, bottom: 10),
-                decoration:BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors:[
-                      Color.fromARGB(255, 25, 16, 116).withOpacity(0.02),
-                       Color.fromARGB(255, 37, 125, 189),
-                     ]
-                     ),
-                ),
-                // color: Color.fromARGB(255, 9, 222, 172),
-                child: Column(
-                  children: [
-                    Container(
-                      height: 50,
-                    child: const Center(
-                      child: Text('lets determine the key',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.w400,)
-                      
-                      
-                    )),),// key text
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
+                  Container(
+
+                    decoration: BoxDecoration(
+                     
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.blue.withOpacity(0.1),
                           
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.all(10),
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 37, 125, 189),
-                                borderRadius: BorderRadius.circular(50),
-                                border: Border.all(
-                                  color: Color.fromARGB(255, 9, 222, 172),
-                                  width: 2,
-                                  )
+                          const Color.fromARGB(255, 35, 5, 110).withOpacity(0.9),
+                        ]
+                    ),
+                    ),
+                    alignment:  Alignment.center,
+                    child:  
+                    Text(
+                      titleText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                      ),
+                    )
+                  )
+                  ]
+                  ),
+              ),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.all(Radius.circular(45)),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color.fromARGB(255, 35, 5, 110),
+                        Color.fromARGB(255, 35, 5, 110),
+                      ],
+                    ),
+                     border: Border.all(
+                      color: Colors.blue, // Color of the border
+                      width: 1, // Width of the border
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                        Container(
+                          height: 100,
+                          child: MusicWaveAnimation(isRecording: _isRecording),
+                        ),
+                      const SizedBox(
+                        height: 50, 
+                        child: Center(
+                          child: Text(
+                            'lets determine the key',
+                            style: TextStyle(
+                              fontSize: 20,
+                              // fontStyle: FontStyle,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ), // key text
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: <Widget>[
+                            IconButton(
+                              iconSize: 60,
+                              onPressed: () async {
+                                if (recorder.isRecording) {
+                                  await stopRecorder();
+                                  setState(() {});
+                                } else {
+                                  await startRecord();
+                                  setState(() {});
+                                }
+                              },
+                              icon: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    recorder.isRecording ? Icons.stop : Icons.mic,
+                                    size: 40,
+                                    color: Colors.white,
+                                  ),
+                                  Text(
+                                    recorder.isRecording ? 'Stop' : 'Record',
+                                    style: const TextStyle(fontSize: 10, color: Colors.white),
+                                  ),
+                                ],
                               ),
-                              child:
-                              ElevatedButton(
-                                onPressed: () async {
-                                  if (recorder.isRecording) {
-                                    await stopRecorder();
-                                    setState(() {});
-                                  } else {
-                                    await startRecord();
-                                    setState(() {});
-                                  }
-                                },
-                                child: Icon(
-                                  recorder.isRecording ? Icons.stop : Icons.mic,
-                                  size: 100,
+                            ),
+                            IconButton(
+                              iconSize: 60,
+                              onPressed: () {
+                                onRefreshButtonPressed;
+                              },
+                              icon: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: <Widget>[
+                                  Icon(Icons.refresh, size: 40, color: Colors.white),
+                                  Text('Refresh', style: TextStyle(fontSize: 10, color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              iconSize: 40,
+                              icon: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.music_note, color: Colors.white),
+                                  Text(
+                                    'Upload',
+                                    style: TextStyle(fontSize: 10, color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                              onPressed: selectAndUploadFile,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        child: Center(
+                          child: Container(
+                            height: 95,
+                            width: 350,
+                            margin: const EdgeInsets.all(30),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              color: Colors.purple.withOpacity(0.13)
+                            ),
+                            child: const Center(
+                              child: Text(
+                                ' "Playing a wrong note is insignificant   \n but \n playing without passion is inexcusable"\ \n-Beethoven',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 12,
+                                  // fontWeight: FontWeight.w400,
+                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: Container(
-                              
-                              height: 100,
-                              margin: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 37, 125, 189),
-                                borderRadius: BorderRadius.circular(50),
-                                border: Border.all(
-                                  color: Color.fromARGB(255, 9, 222, 172),
-                                  width: 2,
-                                  )
-                              ),
-                              child: 
-                              ElevatedButton(
-                                onPressed: onRefreshButtonPressed,
-                                child: Text('Refresh'),
-                              )
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.all(10),
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 37, 125, 189),
-                                borderRadius: BorderRadius.circular(50), 
-                                border: Border.all(
-                                  color: Color.fromARGB(255, 9, 222, 172),
-                                  width: 2,
-                                  )
-                              ),
-                              child: 
-                                IconButton(
-                                  iconSize: 60,
-                                  icon: Icon(Icons.music_note),
-                                  onPressed: 
-                                  selectAndUploadFile,
-                                )
-                                
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('      listen',
-                        style: TextStyle
-                        (fontSize: 20),
-                        textAlign: TextAlign.center,),
-                        Text('refresh',
-                        style: TextStyle
-                        (fontSize: 20),
-                        textAlign: TextAlign.center,),
-                        Text('Upload     ',
-                        style: TextStyle
-                        (fontSize: 20),
-                        textAlign: TextAlign.center,),
-                      ],
-                    ),
-                  ],
-                ), 
-              ),
-            ),
-            Container(
-              height:100,
-              color:   Colors.white,
-              child: Center(
-                child: Container(
-                  height:95,
-                  width: 350,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(40),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors:[ 
-                          Color.fromARGB(255, 37, 125, 189).withOpacity(0.5),
-                          Color.fromARGB(255, 189, 71, 197).withOpacity(0.5),
-                          Color.fromARGB(255, 53, 81, 220).withOpacity(0.5)]
-                      ),
+                    ],
                   ),
-                  child: const Center(child: Text(' \"Playing a wrong note is insignificant   \n but \n playing without passion is inexcusable"\ \n-Beethoven',
-                  textAlign: TextAlign.center
-                  ,
-                  style: TextStyle(
-                    color:Color.fromARGB(255, 3, 16, 13),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                  ),)
-                  ),
-            
                 ),
-              ), 
-            ),
-          ],
+              ),
+              
+            ],
+          ),
         ),
       ),
     );
@@ -412,17 +435,18 @@ class _MyAppState extends State<MyApp> {
 
 // animarion class
 class MusicWaveAnimation extends StatefulWidget {
-  const MusicWaveAnimation({super.key});
+  final bool isRecording;
+
+  const MusicWaveAnimation({Key? key, required this.isRecording}) : super(key: key);
 
   @override
-  // ignore: library_private_types_in_public_api
   _MusicWaveAnimationState createState() => _MusicWaveAnimationState();
 }
 
 class _MusicWaveAnimationState extends State<MusicWaveAnimation> {
   late Timer _timer;
   final List<double> _waveValues = [];
-  final int _numberOfWaves = 50; // Increased number of waves
+  final int _numberOfWaves = 50;
   final double _amplitude = 50.0;
   final double _period = 6.0;
   var _phase = 0.0;
@@ -430,7 +454,7 @@ class _MusicWaveAnimationState extends State<MusicWaveAnimation> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 20), (timer) { // Reduced time of reaction
+    _timer = Timer.periodic(const Duration(milliseconds: 20), (timer) {
       _phase += 0.1;
       _updateWaveValues();
     });
@@ -446,18 +470,18 @@ class _MusicWaveAnimationState extends State<MusicWaveAnimation> {
     setState(() {
       _waveValues.clear();
       for (int i = 0; i < _numberOfWaves; i++) {
-        double value = _calculateWaveValue(i);
+        double value = widget.isRecording ? _calculateWaveValue(i) : 0.0;
         _waveValues.add(value);
       }
     });
-  } 
+  }
 
   double _calculateWaveValue(int index) {
-    double waveLength = 1.5 * pi / _period; 
+    double waveLength = 1.5 * pi / _period;
     double scaledIndex = index * 1.5;
     double scaledPhase = _phase - scaledIndex;
     double value1 = _amplitude * sin(waveLength * scaledPhase);
-    double value2 = _amplitude * sin(waveLength * scaledPhase + 3.3*waveLength);
+    double value2 = _amplitude * sin(waveLength * scaledPhase + 3.3 * waveLength);
     double value3 = _amplitude / 3 * sin(3 * waveLength * scaledPhase);
     double value4 = _amplitude / 2 * sin(2 * waveLength * scaledPhase);
     double value = value2 + value1 + value3 + value4;
@@ -466,7 +490,7 @@ class _MusicWaveAnimationState extends State<MusicWaveAnimation> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 100,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -479,22 +503,18 @@ class _MusicWaveAnimationState extends State<MusicWaveAnimation> {
 
   Widget _buildWave(double value) {
     return Container(
-      width: 4, // Adjust the width of each wave
-      height: value.abs() + 10, // Adjust the height of each wave
-      margin: EdgeInsets.symmetric(horizontal: 2),
+      width: 3,
+      height: value.abs() + 10,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: Colors.blue,
         borderRadius: BorderRadius.circular(10),
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.centerRight,
-          colors:[Colors.blue,Color.fromARGB(255, 214, 127, 193), Color.fromARGB(255, 144, 126, 244)]
-        )
+          colors: [Colors.blue, Color.fromARGB(255, 214, 127, 193), Color.fromARGB(255, 144, 126, 244)],
+        ),
       ),
     );
   }
 }
-
-
-
-
