@@ -1,5 +1,6 @@
 
 import 'dart:convert';
+import 'dart:ffi';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,6 @@ import 'dart:io';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:path/path.dart' as path;
 
 void main() {
@@ -31,6 +31,36 @@ class _MyAppState extends State<MyApp> {
   final recorder = FlutterSoundRecorder();
   bool wasLastActionRecording = false;
   bool _isRecording = false;
+  Timer? _timer;
+  int _start = 00;
+  String? lastUploadedFileName;
+
+  void startTimer() {
+    _isRecording = true;
+    lastUploadedFileName = null;
+    _start = 00;
+    const oneSec = Duration(seconds: 1);
+    _timer = Timer.periodic(
+      oneSec,
+      (Timer timer) => setState(
+        () {
+          _start++;
+        },
+      ),
+    );
+  }
+
+  void stopTimer() {
+    _isRecording = false;
+    _timer?.cancel();
+  }
+
+  String formatTime(int seconds) {
+    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secondsFormatted = (seconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$secondsFormatted';
+  }
+
 
   // function to determine the  condition of thre previous state
   void onRefreshButtonPressed() {
@@ -38,11 +68,57 @@ class _MyAppState extends State<MyApp> {
       print('refreshed');
     }
   if (wasLastActionRecording) {
-    if (kDebugMode) {
-      print('hello reccorder########################################################################');
-    }
     // Send the request for the recorded audio
-    stopRecorder();
+     Future<void> fetchData() async {
+   final filePath = await recorder.stopRecorder();
+    final file = File(filePath!);
+    if (kDebugMode) {
+      print('Recorded file path: $filePath');
+    }
+
+    var  request = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/upload/'));
+    request.files.add(http.MultipartFile(
+      'file',
+      file.readAsBytes().asStream(),
+      file.lengthSync(),
+      filename: path.basename(file.path),
+    ));
+
+    // Send the request
+    var response = await request.send();
+
+    // Handle the response
+    if (response.statusCode == 200) {
+      String responseBody = await response.stream.bytesToString();
+      var data = jsonDecode(responseBody);
+      if (data is Map && data.containsKey('predicted_key')) {
+        setState(() {
+          titleText = data['predicted_key'].toString();
+        });
+      } else {
+        if (kDebugMode) {
+          print(response);
+          print('Unexpected response format');
+        }
+      } 
+    } else {
+      if (kDebugMode) {
+        print('Failed to upload. : ${response.statusCode}');
+      }
+      String responseBody = await response.stream.bytesToString();
+      if (kDebugMode) {
+        print('Response body: $responseBody');
+      }
+    }
+    stopTimer();
+
+    setState(() {
+      _isRecording = false; // Update the animation state
+      wasLastActionRecording = true;
+    });
+  }
+    fetchData();
+    // stopRecorder();
   } else {
     // Send the request for the selected file
     uploadFile();
@@ -75,7 +151,14 @@ class _MyAppState extends State<MyApp> {
 // start record 
 // start record 
   Future startRecord() async {
-    // get the directory 
+
+  startTimer();
+  
+  setState(() {
+  _isRecording = true; // Update the animation state
+    });
+
+
     // get the directory 
     Directory? directory;
     if (Platform.isAndroid) {
@@ -87,22 +170,27 @@ class _MyAppState extends State<MyApp> {
     String filePath = '${directory!.path}/my_recording.aac';
     await recorder.startRecorder(toFile: filePath);
 
-    setState(() {
-      _isRecording = true; // Update the animation state
-    });
-
     return filePath;
   }
 
 // sending the request afrer  the recording stops
+
+
   Future stopRecorder() async {
-    final filePath = await recorder.stopRecorder();
+    stopTimer();
+
+    setState(() {
+      _isRecording = false; // Update the animation state
+      wasLastActionRecording = true;
+    });
+
+   final filePath = await recorder.stopRecorder();
     final file = File(filePath!);
     if (kDebugMode) {
       print('Recorded file path: $filePath');
     }
 
-    var request = http.MultipartRequest('POST', Uri.parse('http://192.168.105.203:8000/keyfinder/findKey'));
+    var  request = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/findKey'));
     request.files.add(http.MultipartFile(
       'file',
       file.readAsBytes().asStream(),
@@ -117,9 +205,9 @@ class _MyAppState extends State<MyApp> {
     if (response.statusCode == 200) {
       String responseBody = await response.stream.bytesToString();
       var data = jsonDecode(responseBody);
-      if (data is Map && data.containsKey('likely_key')) {
+      if (data is Map && data.containsKey('predicted_key')) {
         setState(() {
-          titleText = data['likely_key'].toString();
+          titleText = data['predicted_key'].toString();
         });
       } else {
         if (kDebugMode) {
@@ -136,14 +224,12 @@ class _MyAppState extends State<MyApp> {
         print('Response body: $responseBody');
       }
     }
-
-    setState(() {
-      _isRecording = false; // Update the animation state
-      wasLastActionRecording = true;
-    });
+   
   }
   // Function to handle file selection and create upload request
   Future<void> selectAndUploadFile() async {
+    wasLastActionRecording = false;
+
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['mp3'],
@@ -151,12 +237,19 @@ class _MyAppState extends State<MyApp> {
 
     if (result != null) {
       selectedFile = result.files.first;
-      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.105.203:8000/keyfinder/findKey'));
+
+      setState(() {
+      lastUploadedFileName = selectedFile!.name;
+    });
+      
+      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/findKey'));
+
       fileUploadRequest!.files.add(http.MultipartFile(
         'file', // consider 'file' as a field name on the server
         File(selectedFile!.path!).readAsBytes().asStream(),
         File(selectedFile!.path!).lengthSync(),
         filename: selectedFile!.name,
+        
       ));
 
       // Send the request and get the response
@@ -165,9 +258,9 @@ class _MyAppState extends State<MyApp> {
   String responseBody = await response.stream.bytesToString();
   var data = jsonDecode(responseBody);
   
-  if (data is Map && data.containsKey('likely_key')) {
+  if (data is Map && data.containsKey('predicted_key')) {
     setState(() {
-      titleText = data['likely_key'].toString();
+      titleText = data['predicted_key'].toString();
     });
   } else {
     if (kDebugMode) {
@@ -186,10 +279,10 @@ class _MyAppState extends State<MyApp> {
   }
 
 
-  // Function to send the upload request
+  // Function to send the upload requesR
   Future<void> uploadFile() async {
-    wasLastActionRecording = false;//setting the status of the refresh
-    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.105.203:8000/keyfinder/findKey'));
+    wasLastActionRecording = false;
+    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/upload/'));
 
     if (selectedFile != null) {
       fileUploadRequest!.files.add(http.MultipartFile(
@@ -204,9 +297,9 @@ class _MyAppState extends State<MyApp> {
 
         String responseBody = await response.stream.bytesToString();
         var data = jsonDecode(responseBody);
-        if (data is Map && data.containsKey('likely_key')) {
+        if (data is Map && data.containsKey('predicted_key')) {
           setState(() {
-            titleText = data['likely_key'].toString();
+            titleText = data['predicted_key'].toString();
           });
         } else {
           if (kDebugMode) {
@@ -321,19 +414,45 @@ class _MyAppState extends State<MyApp> {
                           height: 100,
                           child: MusicWaveAnimation(isRecording: _isRecording),
                         ),
-                      const SizedBox(
+                        SizedBox(
                         height: 50, 
                         child: Center(
-                          child: Text(
-                            'lets determine the key',
-                            style: TextStyle(
+                      child: _isRecording 
+                        ? Text(
+                            'Recording ${formatTime(_start)}',
+                            style: const TextStyle(
                               fontSize: 20,
-                              // fontStyle: FontStyle,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
+                          )
+                        : Text.rich(
+                            TextSpan(
+                              children: [
+                                if (lastUploadedFileName != null) 
+                                  TextSpan(
+                                    text: lastUploadedFileName,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                else 
+                                  const TextSpan(
+                                    text: "Let's determine the key",
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
+                    ),
+
+
                       ), // key text
                       Expanded(
                         child: Row(
@@ -368,7 +487,7 @@ class _MyAppState extends State<MyApp> {
                             IconButton(
                               iconSize: 60,
                               onPressed: () {
-                                onRefreshButtonPressed;
+                                onRefreshButtonPressed();
                               },
                               icon: const Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -405,9 +524,20 @@ class _MyAppState extends State<MyApp> {
                               borderRadius: BorderRadius.circular(30),
                               color: Colors.purple.withOpacity(0.13)
                             ),
-                            child: const Center(
-                              child: Text(
-                                ' "Playing a wrong note is insignificant   \n but \n playing without passion is inexcusable"\ \n-Beethoven',
+                            child:Center(
+                              child: _isRecording
+                                  ? const Text(
+                                      "Wait until 20-30 seconds for more accurate result",
+                                   textAlign: TextAlign.center, 
+                                  style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 12,
+                                  // fontWeight: FontWeight.w400,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                    )
+                                  : const Text(
+                                  ' "Playing a wrong note is insignificant   \n but \n playing without passion is inexcusable"\ \n-Beethoven',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.blue,
@@ -415,7 +545,7 @@ class _MyAppState extends State<MyApp> {
                                   // fontWeight: FontWeight.w400,
                                   fontStyle: FontStyle.italic,
                                 ),
-                              ),
+                                ),
                             ),
                           ),
                         ),
@@ -517,4 +647,4 @@ class _MusicWaveAnimationState extends State<MusicWaveAnimation> {
       ),
     );
   }
-}
+}   
