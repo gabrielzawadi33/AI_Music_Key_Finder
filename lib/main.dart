@@ -76,7 +76,7 @@ class _MyAppState extends State<MyApp> {
       print('Recorded file path: $filePath');
     }
 
-    var  request = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/upload/'));
+    var  request = http.MultipartRequest('POST', Uri.parse('http://192.168.108.203:8000/keyfinder/upload/'));
     request.files.add(http.MultipartFile(
       'file',
       file.readAsBytes().asStream(),
@@ -190,7 +190,7 @@ class _MyAppState extends State<MyApp> {
       print('Recorded file path: $filePath');
     }
 
-    var  request = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/findKey'));
+    var  request = http.MultipartRequest('POST', Uri.parse('http://192.168.108.203:8000/keyfinder/findKey'));
     request.files.add(http.MultipartFile(
       'file',
       file.readAsBytes().asStream(),
@@ -242,7 +242,7 @@ class _MyAppState extends State<MyApp> {
       lastUploadedFileName = selectedFile!.name;
     });
       
-      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/findKey'));
+      fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.108.203:8000/keyfinder/findKey'));
 
       fileUploadRequest!.files.add(http.MultipartFile(
         'file', // consider 'file' as a field name on the server
@@ -282,7 +282,7 @@ class _MyAppState extends State<MyApp> {
   // Function to send the upload requesR
   Future<void> uploadFile() async {
     wasLastActionRecording = false;
-    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.81.203:8000/keyfinder/upload/'));
+    fileUploadRequest = http.MultipartRequest('POST', Uri.parse('http://192.168.108.203:8000/keyfinder/upload/'));
 
     if (selectedFile != null) {
       fileUploadRequest!.files.add(http.MultipartFile(
